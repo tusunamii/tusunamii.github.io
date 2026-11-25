@@ -283,6 +283,10 @@
       will-change: transform, opacity;
     }
 
+    body.intro-lock #siteShell {
+      pointer-events: none;
+    }
+
     #siteShell.slide-ready {
       transform: translateX(22%);
       opacity: 0.25;
@@ -1807,8 +1811,8 @@ function createIntroController(){
       if (siteShell) {
         siteShell.classList.remove('slide-ready', 'slide-in');
       }
-      document.body.classList.remove('intro-lock');
       active = false;
+      setTimeout(function(){ document.body.classList.remove('intro-lock'); }, 140);
       return;
     }
     if (siteShell) {
@@ -3232,6 +3236,8 @@ function createIntroController(){
 
     function onClickOverlay(e){
       if (e.target.closest && (e.target.closest('#introSoundBtn') || e.target.closest('#introSkipBtn'))) return;
+      e.preventDefault();
+      e.stopPropagation();
       triggerStart();
     }
     function onKeyDown(e){
@@ -3255,7 +3261,7 @@ function createIntroController(){
     window.addEventListener('mousemove', onMouseMove);
     window.addEventListener('resize', onResize);
     if (skipBtn) {
-      skipBtn.onclick = function(e){ e.stopPropagation(); finishIntro(true); };
+      skipBtn.onclick = function(e){ e.preventDefault(); e.stopPropagation(); finishIntro(true); };
     }
 
     var rafId = 0;
@@ -4325,7 +4331,6 @@ window.TTS_INTRO = createIntroController();
     else if (k === 'S' || k === 'F') { e.preventDefault(); activeKeyCtx.star(); }
   });
   window.addEventListener('hashchange', function () { render(); });
-  if (!location.hash) { try { var last = localStorage.getItem(KEY + '-last'); if (last) location.hash = last; } catch (e) { } }
   render();
 })();
 
