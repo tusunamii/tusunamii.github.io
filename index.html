@@ -3249,7 +3249,7 @@ window.TTS_INTRO = createIntroController();
     }
     h += '</div><div class="acts-right">';
     h += '<button class="btn g" id="inlPrev"' + (prevLink ? '' : ' disabled') + '>← Önceki</button>';
-    h += '<button class="btn g" id="inlNext"' + (nextLink ? '' : ' disabled') + '>' + (nextLabel || 'Sonraki →') + '</button>';
+    h += '<button class="btn' + (nextLabel ? '' : ' g') + '" id="inlNext"' + (nextLink ? '' : ' disabled') + '>' + (nextLabel || 'Sonraki →') + '</button>';
     h += '</div></div>';
 
     if (shown || (!known && a)) {
@@ -3291,14 +3291,14 @@ window.TTS_INTRO = createIntroController();
   function konuView(d, bi, ki, qno) {
     var b = d.bolumler[bi], k = b && b.konular[ki];
     if (!k) return derslerView();
-    setCrumb([['Ana Sayfa', '#/'], [d.ad, '#/d/' + d.id], [k.ad]]);
+    setCrumb([['Ana Sayfa', '#/dersler'], [d.ad, '#/d/' + d.id], [k.ad]]);
     var cur = null; k.sorular.forEach(function (q) { if (q.no === qno) cur = q.id; });
-    quizView(applyFilter(k.sorular, cur), k.sorular.length, cur, '#/d/' + d.id + '/' + bi + '/' + ki, function () { return d.ad + ' · ' + k.ad; }, true, function (q) { return q.no; });
+    quizView(applyFilter(k.sorular, cur), k.sorular.length, cur, '#/d/' + d.id + '/' + bi + '/' + ki, function () { return d.ad + ' · ' + k.ad; }, true, function (q) { return q.no; }, { url: '#/d/' + d.id, label: 'Konulara Dön', topLabel: d.ad + ' Konuları' });
   }
 
   function marksView(qid) {
     activeKeyCtx = null;
-    setCrumb([['Ana Sayfa', '#/'], ['Yıldızlılar']]);
+    setCrumb([['Ana Sayfa', '#/dersler'], ['Yıldızlılar']]);
     var list = ORDER.filter(function (id) { return S.marks[id] || id === qid; }).map(function (id) { return Q[id].q; });
     if (qid == null) {
       nav.hidden = true;
@@ -3318,12 +3318,14 @@ window.TTS_INTRO = createIntroController();
       app.innerHTML = h + '</div>';
       return;
     }
-    quizView(list, list.length, qid, '#/isaretli', function (q) { return Q[q.id].ctx; }, false, function (q) { return q.id; });
+    quizView(list, list.length, qid, '#/isaretli', function (q) { return Q[q.id].ctx; }, false, function (q) { return q.id; }, { url: '#/isaretli', label: 'Yıldızlılara Dön', topLabel: 'Yıldızlılar' });
   }
 
-  function quizView(list, totalCount, curId, base, ctxOf, showFilter, keyOf) {
+  function quizView(list, totalCount, curId, base, ctxOf, showFilter, keyOf, backInfo) {
     var qi = 0; list.forEach(function (q, i) { if (q.id === curId) qi = i; });
     function link(i) { return base + '/' + encodeURIComponent(keyOf(list[i])); }
+
+    var backHtml = backInfo ? '<a class="hero-back" href="' + backInfo.url + '">‹ ' + esc(backInfo.topLabel || backInfo.label) + '</a>' : '';
 
     var rail = '<div class="rail' + (railOpen ? ' open' : '') + '" id="sideRail">';
     rail += '<div class="rail-top"><span>' + (list.length ? (qi + 1) + ' / ' + list.length : '0 / ' + totalCount) + '</span><button class="rail-hide-btn" id="railHideBtn" title="Listeyi küçült">‹ Küçült</button></div>';
@@ -3343,7 +3345,7 @@ window.TTS_INTRO = createIntroController();
 
     if (!list.length) {
       activeKeyCtx = null; nav.hidden = true;
-      app.innerHTML = '<div class="bench' + (railCollapsed ? ' rail-collapsed' : '') + '">' + rail + '<div>' + miniBar + '<div class="empty">Seçili filtrede soru bulunmuyor.</div></div></div>';
+      app.innerHTML = backHtml + '<div class="bench' + (railCollapsed ? ' rail-collapsed' : '') + '">' + rail + '<div>' + miniBar + '<div class="empty">Seçili filtrede soru bulunmuyor.</div></div></div>';
       bindFilter();
       var rh0 = document.getElementById('railHideBtn'); if (rh0) rh0.onclick = toggleRailCollapsed;
       var rs0 = document.getElementById('railShowBtn'); if (rs0) rs0.onclick = toggleRailCollapsed;
@@ -3353,9 +3355,11 @@ window.TTS_INTRO = createIntroController();
     var q = list[qi];
     setWaveProg(Math.round(100 * (qi + 1) / list.length));
     var prev = qi > 0 ? link(qi - 1) : null;
-    var next = qi < list.length - 1 ? link(qi + 1) : null;
+    var isLast = qi === list.length - 1;
+    var next = !isLast ? link(qi + 1) : (backInfo ? backInfo.url : null);
+    var nextLabel = isLast && backInfo ? backInfo.label : null;
     var mobBtn = '<button class="mob-rail-toggle" id="mobRailBtn"><span>Sorular (' + (qi + 1) + ' / ' + list.length + ')</span><span>' + (railOpen ? 'Gizle ▲' : 'Göster ▼') + '</span></button>';
-    app.innerHTML = mobBtn + '<div class="bench' + (railCollapsed ? ' rail-collapsed' : '') + '">' + rail + '<div>' + miniBar + qHtml(q, ctxOf(q), prev, next) + '</div></div>';
+    app.innerHTML = backHtml + mobBtn + '<div class="bench' + (railCollapsed ? ' rail-collapsed' : '') + '">' + rail + '<div>' + miniBar + qHtml(q, ctxOf(q), prev, next, nextLabel) + '</div></div>';
 
     bindFilter();
     var rh = document.getElementById('railHideBtn'); if (rh) rh.onclick = toggleRailCollapsed;
@@ -3386,7 +3390,7 @@ window.TTS_INTRO = createIntroController();
     var ip = document.getElementById('inlPrev'); if (ip) ip.onclick = function () { if (prev) go(prev); };
     var inx = document.getElementById('inlNext'); if (inx) inx.onclick = function () { if (next) go(next); };
     bindStar(q);
-    setNav(prev, next);
+    setNav(prev, next, nextLabel);
 
     activeKeyCtx = {
       pick: function (L) { if (!S.ans[q.id] && q.siklar[L]) { S.ans[q.id] = L; S.shown[q.id] = 1; recordActivity(); save(); render(true); } },
