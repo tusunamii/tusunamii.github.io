@@ -2955,14 +2955,8 @@ function createIntroController(){
     };
   }
 
-  // Play opening animation on fresh load / refresh at root; skip on deep links inside the app.
-  var h = location.hash || '';
-  var isRoot = !h || h === '#/' || h === '#';
-  if (isRoot) {
-    startScene();
-  } else {
-    overlay.style.display = 'none';
-  }
+  // Play opening animation on every page load / browser refresh (in-app hash navigation does not reload).
+  startScene();
 
   return {
     play: function(){ startScene(); }
