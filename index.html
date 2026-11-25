@@ -3039,7 +3039,7 @@ function createIntroController(){
 
     // 5. STYLIZED 3D CURLING TSUNAMI WAVE (rich luminous ocean wall + tightly packed billowing crest foam!)
     var tsunami = new THREE.Group();
-    tsunami.position.set(-23.5, 0, 0.4);
+    tsunami.position.set(-14.5, 0, 0.4);
     tsunami.visible = false;
     scene.add(tsunami);
 
@@ -3204,6 +3204,8 @@ function createIntroController(){
     var slideTriggered = false;
     var sleighLanded = false;
     var santaBoarded = false;
+    var jumpStartX = 0;
+    var jumpStartZ = 0;
 
     function easeOutBack(x){
       var c1 = 1.55, c3 = c1 + 1;
@@ -3333,10 +3335,10 @@ function createIntroController(){
         ringMat.opacity = Math.max(0, 0.96 * (1 - rp * 0.85));
         haloMat.opacity = Math.max(0, 0.35 * (1 - rp * 0.9));
 
-        // 2. Tsunami rushes in from -23.5 -> +26 across the snowy avenue!
-        var waveSpeed = tState < 1.10 ? 12.2 : 14.5;
+        // 2. Tsunami rushes in from -14.5 -> +28 right behind Santa and the sleigh!
+        var waveSpeed = tState < 0.94 ? 13.4 : 15.0;
         tsunami.position.x += waveSpeed * dt;
-        var waveGrow = Math.min(1, tState / 0.90);
+        var waveGrow = Math.min(1, tState / 0.80);
         tsunami.scale.set(0.75 + 0.35 * waveGrow, 0.55 + 0.55 * waveGrow, 1);
 
         // Animate boiling foam & flying spray
@@ -3376,101 +3378,124 @@ function createIntroController(){
           }
         }
 
-        // 3. BEAT A (0.0 -> 0.65s): Reindeer & sleigh SWOOP DOWN FROM THE SKY and touch down beside Santa!
-        if (tState < 0.65) {
-          var fp = tState / 0.65;
-          var fe = 1 - Math.pow(1 - fp, 3); // smooth ease-out landing swoop!
+        // 3. BEAT A (0.0 -> 0.58s): Santa IMMEDIATELY sprints rightward (+X) while reindeer sleigh swoops down right beside him!
+        if (tState < 0.58) {
+          var fp = tState / 0.58;
+          var fe = 1 - Math.pow(1 - fp, 2.3); // smooth continuous forward descent — never stalls!
+
+          // Santa immediately turns & sprints rightward along z = 0.76!
+          var sprintSpeed = 4.6 + 4.4 * fp;
+          runner.position.x += sprintSpeed * dt;
+          runner.position.z += (0.78 - runner.position.z) * Math.min(1, dt * 8);
+          runner.rotation.y += (Math.PI * 0.5 - runner.rotation.y) * Math.min(1, dt * 14);
+          var rFreq = 18.5;
+          var rSwing = Math.sin(tState * rFreq);
+          legL.rotation.x =  rSwing * 1.12;
+          legR.rotation.x = -rSwing * 1.12;
+          armL.rotation.x = -rSwing * 1.08;
+          armR.rotation.x =  rSwing * 1.08;
+          bodyRig.position.y = Math.abs(Math.cos(tState * rFreq)) * 0.20;
+          bodyRig.rotation.x = 0.24;
+          bodyRig.rotation.z = rSwing * 0.06;
+          headGrp.rotation.x = -0.22 * (1 - fp);
+          headGrp.rotation.y = -0.35 * (1 - fp);
+          scarfTail.rotation.x = 0.52 + Math.sin(tState * 24) * 0.20;
+          hatTipGrp.rotation.z = -0.90 + Math.sin(tState * rFreq) * 0.20;
+          bangGrp.scale.setScalar(fp < 0.45 ? Math.sin((fp / 0.45) * Math.PI) * 1.12 : 0.001);
+
+          // Flying reindeer sleigh swoops down from upper sky straight alongside sprinting Santa!
+          var targetTouchX = runner.position.x + 0.34;
           sleighRig.position.set(
-            -3.8 + 4.25 * fe,
-            8.4 * Math.pow(1 - fp, 2.05),
-            -0.4 + 0.65 * fe
+            -4.2 + (targetTouchX + 4.2) * fe,
+            7.6 * Math.pow(1 - fp, 2.05),
+            -0.38 + 0.58 * fe
           );
-          // Graceful nose-down sky dive flaring level right before touchdown
-          sleighRig.rotation.z = -0.34 * Math.sin((1 - fp) * Math.PI * 0.85);
+          sleighRig.rotation.z = -0.28 * Math.sin((1 - fp) * Math.PI * 0.85);
           sleighRig.rotation.y = 0;
 
-          // Reindeer sky-gallop mid-air!
+          // Reindeer in continuous mid-air gallop!
           for (var rdiA = 0; rdiA < reindeers.length; rdiA++) {
             var rdA = reindeers[rdiA];
-            var skyAng = tTotal * 15.0 + rdA.phase * 1.5;
-            rdA.legs[0].rotation.z = Math.sin(skyAng) * 0.85;
-            rdA.legs[1].rotation.z = Math.sin(skyAng + 0.4) * 0.80;
-            rdA.legs[2].rotation.z = Math.sin(skyAng + Math.PI * 0.85) * 0.85;
-            rdA.legs[3].rotation.z = Math.sin(skyAng + Math.PI * 0.85 + 0.4) * 0.80;
-            rdA.body.position.y = Math.sin(skyAng) * 0.08;
-            rdA.neckHead.rotation.z = -0.12 + Math.cos(skyAng) * 0.10;
+            var skyAng = tTotal * 16.5 + rdA.phase * 1.6;
+            rdA.legs[0].rotation.z = Math.sin(skyAng) * 0.90;
+            rdA.legs[1].rotation.z = Math.sin(skyAng + 0.35) * 0.84;
+            rdA.legs[2].rotation.z = Math.sin(skyAng + Math.PI * 0.85) * 0.90;
+            rdA.legs[3].rotation.z = Math.sin(skyAng + Math.PI * 0.85 + 0.35) * 0.84;
+            rdA.body.position.y = Math.abs(Math.sin(skyAng)) * 0.14;
+            rdA.body.rotation.z = Math.cos(skyAng) * 0.12;
+            rdA.neckHead.rotation.z = -Math.cos(skyAng) * 0.12;
           }
 
-          // Santa looks up excitedly as the reindeer descend, "!" pops above hat, then crouches to jump!
-          headGrp.rotation.x = -0.38 * (1 - fp * 0.5);
-          headGrp.rotation.y = -0.55 * Math.sin(fp * Math.PI);
-          bangGrp.scale.setScalar(Math.sin(Math.min(1, fp * 1.5) * Math.PI) * 1.15);
-          if (fp > 0.74) {
-            var crouch = (fp - 0.74) / 0.26;
-            bodyRig.position.y = -0.14 * crouch;
-            armL.rotation.x = 0.55 * crouch;
-            armR.rotation.x = 0.55 * crouch;
-          } else {
-            bodyRig.position.y = Math.sin(fp * Math.PI * 2) * 0.08;
-            armL.rotation.x = -1.2 * Math.sin(fp * Math.PI);
-            armR.rotation.x = -1.2 * Math.sin(fp * Math.PI);
-          }
-
-          // Magic snow trail while swooping down
           dustTimer += dt;
           if (dustTimer > 0.065) {
             dustTimer = 0;
+            spawnDust(runner.position.x, runner.position.z);
             spawnDust(sleighRig.position.x + 0.2, sleighRig.position.z);
             dustPuffs[(dustCursor - 1) % dustPuffs.length].mesh.position.y = Math.max(0.2, sleighRig.position.y + 0.3);
           }
         }
-        // BEAT B (0.65 -> 1.10s): Sleigh touches down with snow burst & SANTA LEAPS HIGH INTO THE SLEIGH!
-        else if (tState < 1.10) {
+        // BEAT B (0.58 -> 0.94s): ZERO PAUSE — reindeer keep galloping forward while Santa INSTANTLY leaps into the moving sleigh!
+        else if (tState < 0.94) {
           if (!sleighLanded) {
             sleighLanded = true;
-            sleighRig.position.set(0.45, 0, 0.25);
+            sleighRig.position.y = 0;
+            sleighRig.position.z = 0.20;
             sleighRig.rotation.set(0, 0, 0);
+            jumpStartX = runner.position.x;
+            jumpStartZ = runner.position.z;
             for (var spb = 0; spb < 5; spb++) {
               spawnDust(sleighRig.position.x - 0.3 + spb * 0.45, sleighRig.position.z + (spb % 2 ? 0.35 : -0.35));
             }
           }
-          var jp = (tState - 0.65) / 0.45; // 0 -> 1 parabolic jump!
-          bangGrp.scale.setScalar(Math.max(0.001, bangGrp.scale.x - dt * 6));
+          var jp = (tState - 0.58) / 0.36; // fast, energetic 0.36s running leap!
+          bangGrp.scale.setScalar(0.001);
 
-          // Reindeer paw excitedly in place waiting for Santa to hop in!
+          // Sleigh & reindeer KEEP MOVING & GALLOPING forward without stopping!
+          var glideSpeed = 11.4 + 1.8 * jp;
+          sleighRig.position.x += glideSpeed * dt;
+          var gFreqB = 17.2;
           for (var rdiB = 0; rdiB < reindeers.length; rdiB++) {
             var rdB = reindeers[rdiB];
-            rdB.body.position.y = Math.sin(jp * Math.PI * 2 + rdB.phase) * 0.04;
-            rdB.body.rotation.z = Math.sin(jp * Math.PI) * 0.14;
-            rdB.legs[0].rotation.z = Math.sin(jp * Math.PI * 3 + rdB.phase) * 0.55;
-            rdB.legs[1].rotation.z = Math.cos(jp * Math.PI * 3 + rdB.phase) * 0.35;
-            rdB.legs[2].rotation.z = 0;
-            rdB.legs[3].rotation.z = 0;
+            var gAngB = tTotal * gFreqB + rdB.phase * 1.6;
+            rdB.legs[0].rotation.z = Math.sin(gAngB) * 0.92;
+            rdB.legs[1].rotation.z = Math.sin(gAngB + 0.35) * 0.85;
+            rdB.legs[2].rotation.z = Math.sin(gAngB + Math.PI * 0.85) * 0.92;
+            rdB.legs[3].rotation.z = Math.sin(gAngB + Math.PI * 0.85 + 0.35) * 0.85;
+            rdB.body.position.y = Math.abs(Math.sin(gAngB)) * 0.22;
+            rdB.body.rotation.z = Math.cos(gAngB) * 0.14;
+            rdB.neckHead.rotation.z = -Math.cos(gAngB) * 0.15;
           }
-          // Subtle landing settle on sleigh before Santa lands
-          sleighBodyGrp.position.y = -0.09 * Math.exp(-jp * 8) * Math.sin(jp * Math.PI * 2);
+          sleighBodyGrp.position.y = Math.abs(Math.cos(tTotal * gFreqB * 0.5)) * 0.08;
+          sleighBodyGrp.rotation.z = Math.sin(tTotal * gFreqB * 0.5) * 0.035;
 
-          // Expressive high parabolic leap from runnerStartPos (-0.15, 0, 0.72) -> sleigh driver seat (0.11, 0.25, 0.25)!
+          // Santa launches straight from his running stride onto the MOVING driver's seat!
+          var seatX = sleighRig.position.x - 0.34;
+          var seatZ = sleighRig.position.z;
           runner.position.set(
-            runnerStartPos.x + (0.11 - runnerStartPos.x) * jp,
-            0.25 * jp + Math.sin(jp * Math.PI) * 1.72,
-            runnerStartPos.z + (0.25 - runnerStartPos.z) * jp
+            jumpStartX + (seatX - jumpStartX) * jp,
+            0.25 * jp + Math.sin(jp * Math.PI) * 1.52,
+            jumpStartZ + (seatZ - jumpStartZ) * jp
           );
-          runner.rotation.y = Math.PI * 0.24 + (Math.PI * 0.5 - Math.PI * 0.24) * easeInOutCubic(jp);
+          runner.rotation.y = Math.PI * 0.5;
           bodyRig.position.y = 0;
-          bodyRig.rotation.x = Math.sin(jp * Math.PI) * 0.24;
-          headGrp.rotation.x = 0;
-          headGrp.rotation.y = 0;
-          // Arms fling joyfully up during the jump then reach forward for the golden reins!
-          armL.rotation.x = -2.2 * Math.sin(jp * Math.PI) - 1.02 * jp;
-          armR.rotation.x = -2.2 * Math.sin(jp * Math.PI) - 1.02 * jp;
+          bodyRig.rotation.x = 0.28 * Math.sin(jp * Math.PI) + 0.18 * jp;
+          bodyRig.rotation.z = 0;
+          headGrp.rotation.set(0, 0, 0);
+          armL.rotation.x = -2.1 * Math.sin(jp * Math.PI) - 1.05 * jp;
+          armR.rotation.x = -2.1 * Math.sin(jp * Math.PI) - 1.05 * jp;
           armL.rotation.z = -0.14 * jp;
           armR.rotation.z =  0.14 * jp;
           legL.rotation.x = -0.95 * Math.sin(jp * Math.PI);
           legR.rotation.x =  0.65 * Math.sin(jp * Math.PI);
-          hatTipGrp.rotation.z = -0.82 - Math.sin(jp * Math.PI) * 0.35;
+          hatTipGrp.rotation.z = -0.85 - Math.sin(jp * Math.PI) * 0.35;
+
+          dustTimer += dt;
+          if (dustTimer > 0.07) {
+            dustTimer = 0;
+            spawnDust(sleighRig.position.x + 1.35, sleighRig.position.z);
+          }
         }
-        // BEAT C (1.10s -> end): SANTA LANDS IN SLEIGH, GRABS REINS & DRIVES THE GALLOPING REINDEER AWAY!
+        // BEAT C (0.94s -> end): SANTA LANDS SEAMLESSLY IN MOVING SLEIGH, GRABS REINS & ACCELERATES AWAY!
         else {
           if (!santaBoarded) {
             santaBoarded = true;
@@ -3486,18 +3511,18 @@ function createIntroController(){
               spawnDust(sleighRig.position.x + 1.2, sleighRig.position.z + (spc - 1.5) * 0.35);
             }
           }
-          bangGrp.scale.setScalar(Math.max(0.001, bangGrp.scale.x - dt * 5));
-          var runT = tState - 1.10;
+          bangGrp.scale.setScalar(0.001);
+          var runT = tState - 0.94;
           headGrp.rotation.y += (0 - headGrp.rotation.y) * Math.min(1, dt * 10);
 
-          var driveSpeed = 13.6 + Math.min(5.2, runT * 2.5);
+          var driveSpeed = 13.4 + Math.min(4.6, runT * 2.4);
           sleighRig.position.x += driveSpeed * dt;
 
-          // Lively reindeer gallop cycle + sleigh landing bounce & snow glide!
+          // Continuous reindeer gallop cycle + juicy landing bounce on sleigh suspension!
           var freq = 17.5;
           for (var rdi3 = 0; rdi3 < reindeers.length; rdi3++) {
             var rd3 = reindeers[rdi3];
-            var gAng = runT * freq + rd3.phase * 1.6;
+            var gAng = tTotal * freq + rd3.phase * 1.6;
             var frontSwing = Math.sin(gAng);
             var backSwing  = Math.sin(gAng + Math.PI * 0.85);
             rd3.legs[0].rotation.z = frontSwing * 0.94;
@@ -3510,16 +3535,16 @@ function createIntroController(){
           }
 
           var landBounce = -0.14 * Math.exp(-runT * 9.0) * Math.cos(runT * 18.0);
-          sleighBodyGrp.position.y = Math.abs(Math.cos(runT * freq * 0.5)) * 0.10 + landBounce;
-          sleighBodyGrp.rotation.z = Math.sin(runT * freq * 0.5) * 0.04;
-          bodyRig.position.y = Math.abs(Math.sin(runT * freq * 0.5)) * 0.06;
+          sleighBodyGrp.position.y = Math.abs(Math.cos(tTotal * freq * 0.5)) * 0.10 + landBounce;
+          sleighBodyGrp.rotation.z = Math.sin(tTotal * freq * 0.5) * 0.04;
+          bodyRig.position.y = Math.abs(Math.sin(tTotal * freq * 0.5)) * 0.06;
           bodyRig.rotation.x = 0.20;
-          armL.rotation.x = -1.08 + Math.sin(runT * freq) * 0.20;
-          armR.rotation.x = -1.08 + Math.sin(runT * freq) * 0.20;
+          armL.rotation.x = -1.08 + Math.sin(tTotal * freq) * 0.20;
+          armR.rotation.x = -1.08 + Math.sin(tTotal * freq) * 0.20;
           scarfTail.rotation.x = 0.58 + Math.sin(runT * 26) * 0.24;
           scarfTail.rotation.y = Math.cos(runT * 20) * 0.26;
-          hatTipGrp.rotation.z = -0.92 + Math.sin(runT * freq) * 0.22;
-          hatTipGrp.rotation.x = -0.58 + Math.cos(runT * freq) * 0.18;
+          hatTipGrp.rotation.z = -0.92 + Math.sin(tTotal * freq) * 0.22;
+          hatTipGrp.rotation.x = -0.58 + Math.cos(tTotal * freq) * 0.18;
 
           dustTimer += dt;
           if (dustTimer > 0.07) {
@@ -3545,12 +3570,12 @@ function createIntroController(){
           }
         }
 
-        // 4. Camera smoothly tracks Santa & the reindeer sleigh + subtle tsunami rumble!
-        var trackX = santaBoarded ? sleighRig.position.x : 0.30;
+        // 4. Camera smoothly tracks Santa from the very first sprint step through the jump & reindeer gallop!
+        var trackX = sleighLanded ? sleighRig.position.x : runner.position.x;
         var shake = Math.max(0, 1 - Math.abs(tsunami.position.x - trackX) / 14) * 0.14;
-        var zoomOut = Math.min(1, tState / 1.1);
-        var desiredX = Math.max(0.30, trackX - 0.4);
-        camTarget.x += (desiredX - camTarget.x) * Math.min(1, dt * 5.2);
+        var zoomOut = Math.min(1, tState / 1.0);
+        var desiredX = Math.max(0.30, trackX - 0.6);
+        camTarget.x += (desiredX - camTarget.x) * Math.min(1, dt * 5.6);
         camera.position.set(
           camTarget.x + camOffset.x * (1 + zoomOut * 0.22) + (Math.random() - 0.5) * shake,
           camTarget.y + camOffset.y * (1 + zoomOut * 0.16) + (Math.random() - 0.5) * shake,
@@ -3559,7 +3584,7 @@ function createIntroController(){
         camera.lookAt(camTarget);
 
         // 5. Trigger seamless horizontal slide into the Apple-style homepage as Santa's sleigh dashes across!
-        if (!slideTriggered && tState >= 3.25) {
+        if (!slideTriggered && tState >= 2.85) {
           slideTriggered = true;
           finishIntro(false);
         }
